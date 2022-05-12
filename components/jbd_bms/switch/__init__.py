@@ -12,19 +12,18 @@ CODEOWNERS = ["@syssi"]
 CONF_CHARGING = "charging"
 CONF_DISCHARGING = "discharging"
 CONF_BALANCER = "balancer"
-CONF_BLUETOOTH = "bluetooth"
-CONF_BUZZER = "buzzer"
+CONF_CHARGE_BALANCER = "charge_balancer"
 
 ICON_DISCHARGING = "mdi:battery-charging-50"
 ICON_CHARGING = "mdi:battery-charging-50"
 ICON_BALANCER = "mdi:seesaw"
-ICON_BLUETOOTH = "mdi:bluetooth"
-ICON_BUZZER = "mdi:volume-high"
+ICON_CHARGE_BALANCER = "mdi:seesaw"
 
 SWITCHES = {
-    CONF_DISCHARGING: 0xF9,
-    CONF_CHARGING: 0xFA,
-    CONF_BALANCER: 0x00,
+    CONF_DISCHARGING: 0xE1,
+    CONF_CHARGING: 0xE1,
+    CONF_BALANCER: 0x2D,  # Func mask
+    CONF_CHARGE_BALANCER: 0x2D,  # Func mask
 }
 
 JbdSwitch = jbd_bms_ns.class_("JbdSwitch", switch.Switch, cg.Component)
@@ -48,6 +47,12 @@ CONFIG_SCHEMA = cv.Schema(
             {
                 cv.GenerateID(): cv.declare_id(JbdSwitch),
                 cv.Optional(CONF_ICON, default=ICON_BALANCER): switch.icon,
+            }
+        ).extend(cv.COMPONENT_SCHEMA),
+        cv.Optional(CONF_CHARGE_BALANCER): switch.SWITCH_SCHEMA.extend(
+            {
+                cv.GenerateID(): cv.declare_id(JbdSwitch),
+                cv.Optional(CONF_ICON, default=ICON_CHARGE_BALANCER): switch.icon,
             }
         ).extend(cv.COMPONENT_SCHEMA),
     }

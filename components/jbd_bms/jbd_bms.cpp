@@ -43,7 +43,7 @@ static const char *const ERRORS[ERRORS_SIZE] = {
     "Unknown (0x0F)",                 // 0x0F
 };
 
-void JbdBms::setup() { this->send_command_(JBD_CMD_READ, JBD_CMD_HWVER); }
+void JbdBms::setup() { this->read_register(JBD_CMD_HWVER); }
 
 void JbdBms::loop() {
   const uint32_t now = millis();
@@ -64,7 +64,7 @@ void JbdBms::loop() {
   }
 }
 
-void JbdBms::update() { this->send_command_(JBD_CMD_READ, JBD_CMD_HWINFO); }
+void JbdBms::update() { this->read_register_(JBD_CMD_HWINFO); }
 
 bool JbdBms::parse_jbd_bms_byte_(uint8_t byte) {
   size_t at = this->rx_buffer_.size();
@@ -269,7 +269,7 @@ void JbdBms::on_hardware_info_data_(const std::vector<uint8_t> &data) {
                          (float) (jbd_get_16bit(23 + (i * 2)) - 2731) * 0.1f);
   }
 
-  this->send_command_(JBD_CMD_READ, JBD_CMD_CELLINFO);
+  this->read_register(JBD_CMD_CELLINFO);
 }
 
 void JbdBms::on_hardware_version_data_(const std::vector<uint8_t> &data) {
@@ -366,16 +366,31 @@ void JbdBms::publish_state_(text_sensor::TextSensor *text_sensor, const std::str
   text_sensor->publish_state(state);
 }
 
-void JbdBms::write_register(uint8_t address, uint16_t value) {
-  this->send_command_(JBD_CMD_WRITE, JBD_CMD_MOS);  // @TODO: Pass value
+void JbdBms::write_register(uint8_t function, uint16_t value) {
+  uint8_t frame[9];
+  uint8_t data_len = sizeof(value);
+
+  frame[0] = JBD_PKT_START;
+  frame[1] = JBD_CMD_READ;
+  frame[2] = function;
+  frame[3] = data_len;
+  frame[4] = value >> 8;
+  frame[5] = value >> 0;
+  auto crc = chksum_(frame + 2, data_len + 2);
+  frame[6] = crc >> 8;
+  frame[7] = crc >> 0;
+  frame[8] = JBD_PKT_END;
+
+  this->write_array(frame, sizeof(frame));
+  this->flush();
 }
 
-void JbdBms::send_command_(uint8_t action, uint8_t function) {
+void JbdBms::read_register_(uint8_t function) {
   uint8_t frame[7];
   uint8_t data_len = 0;
 
   frame[0] = JBD_PKT_START;
-  frame[1] = action;
+  frame[1] = JBD_CMD_READ;
   frame[2] = function;
   frame[3] = data_len;
   auto crc = chksum_(frame + 2, data_len + 2);
@@ -383,7 +398,7 @@ void JbdBms::send_command_(uint8_t action, uint8_t function) {
   frame[5] = crc >> 0;
   frame[6] = JBD_PKT_END;
 
-  this->write_array(frame, 7);
+  this->write_array(frame, sizeof(frame));
   this->flush();
 }
 

@@ -174,3 +174,5 @@ switch:
       name: "${name} discharging"
     balancer:
       name: "${name} balancer"
+    charge_balancer:
+      name: "${name} charge balancer"
